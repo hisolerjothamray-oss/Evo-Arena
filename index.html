@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>Evo Battle Arena</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: white;
+    overflow: hidden;
+    touch-action: none;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    background: #182b36;
+}
+
+#hud {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+#levelText {
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 2px 4px #000;
+}
+
+#xpBackground {
+    width: 100%;
+    max-width: 360px;
+    height: 12px;
+    margin-top: 7px;
+    background: #263746;
+    border: 1px solid #ffffff55;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+#xpBar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #18e89b, #b5ff50);
+    transition: width 0.15s;
+}
+
+#scoreText {
+    margin-top: 6px;
+    font-size: 14px;
+    text-shadow: 0 2px 4px #000;
+}
+
+#overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #07101ddd;
+}
+
+#panel {
+    width: 100%;
+    max-width: 360px;
+    padding: 28px 22px;
+    text-align: center;
+    background: #172638;
+    border: 1px solid #49627b;
+    border-radius: 22px;
+    box-shadow: 0 15px 50px #0008;
+}
+
+h1 {
+    font-size: 35px;
+    color: #58f2b1;
+    margin-bottom: 8px;
+}
+
+#panel p {
+    color: #c4d2df;
+    line-height: 1.5;
+    margin: 12px 0 20px;
+}
+
+button {
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    user-select: none;
+}
+
+#startButton {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #17c982, #0ba4ac);
+    font-size: 19px;
+}
+
+#startButton:active {
+    transform: scale(0.97);
+}
+
+#controls {
+    position: fixed;
+    inset: auto 0 20px 0;
+    z-index: 4;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+#pad {
+    width: 145px;
+    height: 130px;
+    position: relative;
+    pointer-events: auto;
+}
+
+.move {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    background: #ffffff25;
+    border: 1px solid #ffffff55;
+    border-radius: 12px;
+    font-size: 22px;
+    backdrop-filter: blur(5px);
+}
+
+#up {
+    top: 0;
+    left: 50px;
+}
+
+#down {
+    bottom: 0;
+    left: 50px;
+}
+
+#left {
+    top: 43px;
+    left: 3px;
+}
+
+#right {
+    top: 43px;
+    right: 3px;
+}
+
+#attackButton {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #ed5264dd;
+    border: 3px solid #ffb0b9;
+    font-size: 15px;
+    box-shadow: 0 5px 20px #0005;
+    pointer-events: auto;
+}
+
+#attackButton:active {
+    transform: scale(0.92);
+    background: #ff304b;
+}
+
+#restartButton {
+    display: none;
+    position: fixed;
+    z-index: 6;
+    top: 12px;
+    right: 12px;
+    padding: 10px 14px;
+    background: #ffffff25;
+    border: 1px solid #ffffff55;
+    border-radius: 10px;
+}
+
+@media (min-width: 700px) {
+    #controls {
+        padding: 0 40px 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+    <div id="levelText">LEVEL 1</div>
+    <div id="xpBackground">
+        <div id="xpBar"></div>
+    </div>
+    <div id="scoreText">Score: 0 | Kills: 0</div>
+</div>
+
+<button id="restartButton" onclick="restartGame()">Restart</button>
+
+<div id="controls">
+    <div id="pad">
+        <button class="move" id="up" data-dir="up">▲</button>
+        <button class="move" id="down" data-dir="down">▼</button>
+        <button class="move" id="left" data-dir="left">◀</button>
+        <button class="move" id="right" data-dir="right">▶</button>
+    </div>
+
+    <button id="attackButton">ATTACK</button>
+</div>
+
+<div id="overlay">
+    <div id="panel">
+        <h1>EVO ARENA</h1>
+        <h2>⚔️ Survival Battle</h2>
+        <p>
+            Defeat enemies, collect glowing XP, and level up your warrior!
+            <br><br>
+            Move using the directional buttons. Tap ATTACK to fight.
+        </p>
+        <button id="startButton" onclick="startGame()">START GAME</button>
+    </div>
+</div>
+
+<script>
+"use strict";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const overlay = document.getElementById("overlay");
+const startButton = document.getElementById("startButton");
+const attackButton = document.getElementById("attackButton");
+const restartButton = document.getElementById("restartButton");
+const levelText = document.getElementById("levelText");
+const scoreText = document.getElementById("scoreText");
+const xpBar = document.getElementById("xpBar");
+
+let W = window.innerWidth;
+let H = window.innerHeight;
+let running = false;
+let gameOver = false;
+let lastTime = 0;
+let spawnTimer = 0;
+let attackCooldown = 0;
+let score = 0;
+let kills = 0;
+let level = 1;
+let xp = 0;
+let xpNeeded = 5;
+let enemies = [];
+let orbs = [];
+let particles = [];
+
+const keys = {};
+const touch = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    attack: false
+};
+
+const player = {
+    x: 0,
+    y: 0,
+    radius: 17,
+    speed: 220,
+    color: "#45e6a0",
+    facing: 0,
+    alive: true
+};
+
+function resizeCanvas() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function resetGame() {
+    player.x = W / 2;
+    player.y = H / 2;
+    player.radius = 17;
+    player.speed = 220;
+    player.facing = 0;
+    player.alive = true;
+
+    enemies = [];
+    orbs = [];
+    particles = [];
+
+    score = 0;
+    kills = 0;
+    level = 1;
+    xp = 0;
+    xpNeeded = 5;
+    spawnTimer = 0;
+    attackCooldown = 0;
+    gameOver = false;
+
+    for (let i = 0; i < 8; i++) {
+        spawnEnemy();
+    }
+
+    updateHUD();
+}
+
+function startGame() {
+    resetGame();
+    running = true;
+    overlay.style.display = "none";
+    restartButton.style.display = "block";
+    lastTime = performance.now();
+}
+
+function restartGame() {
+    startGame();
+}
+
+function endGame() {
+    running = false;
+    gameOver = true;
+
+    overlay.style.display = "flex";
+
+    document.querySelector("#panel h1").textContent = "GAME OVER";
+    document.querySelector("#panel h2").textContent = "🏆 Score: " + score;
+
+    overlay.querySelector("p").innerHTML =
+        "You reached level " + level +
+        " and defeated " + kills +
+        " enemies.<br><br>Ready for another battle?";
+
+    startButton.textContent = "PLAY AGAIN";
+    restartButton.style.display = "none";
+}
+
+function updateHUD() {
+    levelText.textContent = "LEVEL " + level;
+    scoreText.textContent = "Score: " + score + " | Kills: " + kills;
+    xpBar.style.width = Math.min(100, (xp / xpNeeded) * 100) + "%";
+}
+
+function spawnEnemy() {
+    let x, y;
+    const side = Math.floor(Math.random() * 4);
+    const margin = 35;
+
+    if (side === 0) {
+        x = random(0, W);
+        y = -margin;
+    } else if (side === 1) {
+        x = W + margin;
+        y = random(0, H);
+    } else if (side === 2) {
+        x = random(0, W);
+        y = H + margin;
+    } else {
+        x = -margin;
+        y = random(0, H);
+    }
+
+    const enemyLevel = Math.max(1, Math.floor(random(1, level + 2)));
+
+    enemies.push({
+        x: x,
+        y: y,
+        radius: 12 + Math.min(enemyLevel, 8),
+        speed: random(45, 75) + enemyLevel * 3,
+        level: enemyLevel,
+        color: ["#ff626f", "#ffae57", "#bc82ff", "#5bb8ff"][
+            Math.floor(Math.random() * 4)
+        ],
+        alive: true
+    });
+}
+
+function makeParticles(x, y, color, amount) {
+    for (let i = 0; i < amount; i++) {
+        const angle = random(0, Math.PI * 2);
+        const speed = random(40, 150);
+
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: random(0.25, 0.6),
+            maxLife: 0.6,
+            color: color,
+            radius: random(2, 5)
+        });
+    }
+}
+
+function spawnOrb(x, y) {
+    orbs.push({
+        x: x,
+        y: y,
+        radius: 6,
+        value: 1
+    });
+}
+
+function gainXP(amount) {
+    xp += amount;
+
+    while (xp >= xpNeeded) {
+        xp -= xpNeeded;
+        level++;
+        xpNeeded = Math.ceil(xpNeeded * 1.4);
+
+        player.radius += 2;
+        player.speed += 4;
+
+        makeParticles(player.x, player.y, "#b8ff61", 18);
+    }
+
+    updateHUD();
+}
+
+function attack() {
+    if (!running || gameOver || attackCooldown > 0) {
+        return;
+    }
+
+    attackCooldown = 0.35;
+
+    const attackRange = 65 + player.radius;
+    let hitSomething = false;
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        const d = distance(player, enemy);
+
+        if (d < attackRange + enemy.radius) {
+            const angle = Math.atan2(
+                enemy.y - player.y,
+                enemy.x - player.x
+            );
+
+            if (Math.abs(angleDifference(angle, player.facing)) < 1.5) {
+                makeParticles(enemy.x, enemy.y, enemy.color, 12);
+                spawnOrb(enemy.x, enemy.y);
+
+                enemies.splice(i, 1);
+                kills++;
+                score += enemy.level * 10;
+                hitSomething = true;
+            }
+        }
+    }
+
+    if (!hitSomething) {
+        makeParticles(
+            player.x + Math.cos(player.facing) * 35,
+            player.y + Math.sin(player.facing) * 35,
+            "#ffffff",
+            3
+        );
+    }
+
+    updateHUD();
+}
+
+function angleDifference(a, b) {
+    let diff = a - b;
+
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+
+    return diff;
+}
+
+attackButton.addEventListener("pointerdown", function(event) {
+    event.preventDefault();
+    touch.attack = true;
+    attack();
+});
+
+attackButton.addEventListener("pointerup", function() {
+    touch.attack = false;
+});
+
+attackButton.addEventListener("pointercancel", function() {
+    touch.attack = false;
+});
+
+document.querySelectorAll(".move").forEach(function(button) {
+    const dir = button.dataset.dir;
+
+    button.addEventListener("pointerdown", function(event) {
+        event.preventDefault();
+        touch[dir] = true;
+
+        try {
+            button.setPointerCapture(event.pointerId);
+        } catch (e) {}
+    });
+
+    function release() {
+        touch[dir] = false;
+    }
+
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("lostpointercapture", release);
+});
+
+window.addEventListener("keydown", function(event) {
+    keys[event.key.toLowerCase()] = true;
+
+    if (
+        ["arrowup", "arrowdown", "arrowleft", "arrowright", " "]
+        .includes(event.key.toLowerCase())
+    ) {
+        event.preventDefault();
+    }
+
+    if (event.code === "Space" && !event.repeat) {
+        attack();
+    }
+});
+
+window.addEventListener("keyup", function(event) {
+    keys[event.key.toLowerCase()] = false;
+});
+
+function update(dt) {
+    if (!running) return;
+
+    attackCooldown = Math.max(0, attackCooldown - dt);
+
+    let dx = 0;
+    let dy = 0;
+
+    if (keys["arrowup"] || keys["w"] || touch.up) dy--;
+    if (keys["arrowdown"] || keys["s"] || touch.down) dy++;
+    if (keys["arrowleft"] || keys["a"] || touch.left) dx--;
+    if (keys["arrowright"] || keys["d"] || touch.right) dx++;
+
+    if (dx !== 0 || dy !== 0) {
+        const length = Math.hypot(dx, dy);
+
+        dx /= length;
+        dy /= length;
+
+        player.x += dx * player.speed * dt;
+        player.y += dy * player.speed * dt;
+
+        player.facing = Math.atan2(dy, dx);
+    }
+
+    player.x = clamp(player.x, player.radius, W - player.radius);
+    player.y = clamp(player.y, player.radius, H - player.radius);
+
+    spawnTimer += dt;
+
+    if (spawnTimer > Math.max(0.5, 1.7 - level * 0.04)) {
+        spawnTimer = 0;
+
+        if (enemies.length < 22) {
+            spawnEnemy();
+        }
+    }
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+
+        const angle = Math.atan2(
+            player.y - enemy.y,
+            player.x - enemy.x
+        );
+
+        enemy.x += Math.cos(angle) * enemy.speed * dt;
+        enemy.y += Math.sin(angle) * enemy.speed * dt;
+
+        if (distance(player, enemy) < player.radius + enemy.radius - 4) {
+            endGame();
+            return;
+        }
+    }
+
+    for (let i = orbs.length - 1; i >= 0; i--) {
+        const orb = orbs[i];
+
+        if (distance(player, orb) < player.radius + orb.radius + 5) {
+            gainXP(orb.value);
+            orbs.splice(i, 1);
+            score += 2;
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vx *= 0.96;
+        p.vy *= 0.96;
+        p.life -= dt;
+
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+
+    updateHUD();
+}
+
+function drawBackground() {
+    ctx.fillStyle = "#182b36";
+    ctx.fillRect(0, 0, W, H);
+
+    const gridSize = 40;
+
+    ctx.strokeStyle = "#ffffff09";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x < W; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y < H; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+    }
+}
+
+function drawWarrior(x, y, radius, color, facing, isPlayer) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    ctx.shadowBlur = isPlayer ? 16 : 8;
+    ctx.shadowColor = color;
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = "#ffffffaa";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.rotate(facing);
+
+    // Weapon
+    ctx.strokeStyle = isPlayer ? "#e8fff4" : "#ffe2dc";
+    ctx.lineWidth = Math.max(3, radius * 0.22);
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(radius * 0.4, 0);
+    ctx.lineTo(radius + 17, 0);
+    ctx.stroke();
+
+    // Eyes
+    ctx.fillStyle = "#10202a";
+    ctx.beginPath();
+    ctx.arc(radius * 0.2, -radius * 0.3, 2.5, 0, Math.PI * 2);
+    ctx.arc(radius * 0.2, radius * 0.3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    if (!isPlayer) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("LV." + radiusLevel(radius), x, y - radius - 8);
+    }
+}
+
+function radiusLevel(radius) {
+    return Math.max(1, Math.round(radius - 11));
+}
+
+function draw() {
+    drawBackground();
+
+    // XP orbs
+    for (const orb of orbs) {
+        ctx.save();
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "#baff55";
+        ctx.fillStyle = "#c8ff6a";
+        ctx.beginPath();
+        ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Enemies
+    for (const enemy of enemies) {
+        drawWarrior(
+            enemy.x,
+            enemy.y,
+            enemy.radius,
+            enemy.color,
+            Math.atan2(player.y - enemy.y, player.x - enemy.x),
+            false
+        );
+    }
+
+    // Player
+    drawWarrior(
+        player.x,
+        player.y,
+        player.radius,
+        player.color,
+        player.facing,
+        true
+    );
+
+    // Particles
+    for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function gameLoop(timestamp) {
+    const dt = Math.min((timestamp - lastTime) / 1000 || 0, 0.04);
+    lastTime = timestamp;
+
+    update(dt);
+    draw();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start with a visible arena behind the menu.
+resetGame();
+draw();
+
+lastTime = performance.now();
+requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
